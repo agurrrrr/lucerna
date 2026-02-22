@@ -1,0 +1,39 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "lucerna",
+  "outputfilename": "lucerna",
+  "frontend:dir": "./frontend",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Lucerna Contributors",
+    "email": ""
+  },
+  "info": {
+    "companyName": "Lucerna",
+    "productName": "Lucerna",
+    "productVersion": "0.1.0",
+    "copyright": "Copyright 2024 Lucerna Contributors. MIT License.",
+    "comments": "A Git GUI Client built with Wails and Svelte"
+  },
+  "wailsjsdir": "./frontend",
+  "version": "2",
+  "outputType": "desktop",
+  "nsisType": "multiple",
+  "debianDepends": [
+    "libgtk-3-0",
+    "libwebkit2gtk-4.1-0"
+  ],
+  "linux": {
+    "icon": "build/appicon.png"
+  },
+  "windows": {
+    "icon": "build/appicon.png"
+  },
+  "mac": {
+    "icon": "build/appicon.png",
+    "universalBuild": true
+  }
+}

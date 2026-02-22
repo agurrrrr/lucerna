@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux/amd64
+            name: linux
+            ext: ''
+          - os: windows-latest
+            platform: windows/amd64
+            name: windows
+            ext: .exe
+          - os: macos-latest
+            platform: darwin/universal
+            name: darwin
+            ext: ''
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Install Wails
+        shell: bash
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install --legacy-peer-deps
+
+      - name: Build application (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: wails build -tags webkit2_41 -clean -platform ${{ matrix.platform }}
+
+      - name: Build application (macOS/Windows)
+        if: matrix.os != 'ubuntu-latest'
+        shell: bash
+        run: wails build -clean -platform ${{ matrix.platform }}
+
+      - name: Create archive (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd build/bin
+          tar -czf ../../lucerna-${{ steps.version.outputs.VERSION }}-${{ matrix.name }}-amd64.tar.gz *
+
+      - name: Create archive (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd build/bin
+          Compress-Archive -Path * -DestinationPath ../../lucerna-${{ steps.version.outputs.VERSION }}-${{ matrix.name }}-amd64.zip
+
+      - name: Upload Release Asset (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lucerna-${{ steps.version.outputs.VERSION }}-${{ matrix.name }}-amd64
+          path: lucerna-${{ steps.version.outputs.VERSION }}-${{ matrix.name }}-amd64.tar.gz
+
+      - name: Upload Release Asset (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lucerna-${{ steps.version.outputs.VERSION }}-${{ matrix.name }}-amd64
+          path: lucerna-${{ steps.version.outputs.VERSION }}-${{ matrix.name }}-amd64.zip
+
+  create-release:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.tar.gz
+            artifacts/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#58a6ff"/>
+      <stop offset="100%" style="stop-color:#3fb950"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#bg)"/>
+  <g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Git branch icon -->
+    <circle cx="44" cy="36" r="8"/>
+    <circle cx="84" cy="36" r="8"/>
+    <circle cx="64" cy="92" r="8"/>
+    <line x1="44" y1="44" x2="44" y2="60"/>
+    <line x1="84" y1="44" x2="84" y2="52"/>
+    <path d="M44 60 Q44 72 64 84"/>
+    <path d="M84 52 Q84 72 64 84"/>
+  </g>
+</svg>
