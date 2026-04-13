@@ -8,16 +8,29 @@ echo "=== Lucerna 설치 스크립트 ==="
 
 # Check dependencies
 echo "[1/5] 의존성 확인..."
-for cmd in go node npm wails; do
+for cmd in go node npm wails pkg-config; do
     if ! command -v $cmd &> /dev/null; then
         echo "오류: $cmd 가 설치되어 있지 않습니다."
         echo ""
         echo "필수 패키지 설치:"
-        echo "  sudo pacman -S go nodejs npm gtk3 webkit2gtk"
+        echo "  sudo pacman -S go nodejs npm gtk3 webkit2gtk-4.1 pkgconf"
         echo "  go install github.com/wailsapp/wails/v2/cmd/wails@latest"
         exit 1
     fi
 done
+
+# Detect webkit2gtk version (Arch dropped 4.0 in favor of 4.1)
+WAILS_TAGS=""
+if pkg-config --exists webkit2gtk-4.0; then
+    echo "  webkit2gtk-4.0 감지됨"
+elif pkg-config --exists webkit2gtk-4.1; then
+    echo "  webkit2gtk-4.1 감지됨 (webkit2_41 태그 사용)"
+    WAILS_TAGS="-tags webkit2_41"
+else
+    echo "오류: webkit2gtk-4.0 또는 4.1 이 설치되어 있지 않습니다."
+    echo "  sudo pacman -S webkit2gtk-4.1"
+    exit 1
+fi
 
 # Install frontend dependencies
 echo "[2/5] 프론트엔드 의존성 설치..."
@@ -27,7 +40,7 @@ cd ..
 
 # Build
 echo "[3/5] 빌드 중..."
-wails build -clean
+wails build -clean $WAILS_TAGS
 
 # Install binary
 echo "[4/5] 바이너리 설치..."
