@@ -12,16 +12,27 @@
 
   const dispatch = createEventDispatcher()
 
-  // Get mergeable branch ref from commit (local branch that is not current branch)
-  function getMergeableBranchRef(commit) {
-    if (!commit || !commit.refs) return null
-    // Find local branch ref that is not the current branch
-    const branchRef = commit.refs.find(ref =>
-      ref.type === 'branch' &&
-      !ref.isRemote &&
-      ref.name !== $currentBranch?.name
+  // Get merge target for a commit. Returns null only for the current HEAD commit.
+  // Prefers a non-current local branch label, then a remote branch label,
+  // and falls back to the commit hash so any non-HEAD commit can be merged.
+  function getMergeTarget(commit) {
+    if (!commit) return null
+    if ($currentBranch?.hash && commit.hash === $currentBranch.hash) return null
+
+    const refs = commit.refs || []
+    const localRef = refs.find(ref =>
+      ref.type === 'branch' && !ref.isRemote && ref.name !== $currentBranch?.name
     )
-    return branchRef
+    if (localRef) {
+      return { name: localRef.name, ref: localRef.name, label: `'${localRef.name}'` }
+    }
+
+    const remoteRef = refs.find(ref => ref.type === 'branch' && ref.isRemote)
+    if (remoteRef) {
+      return { name: remoteRef.name, ref: remoteRef.name, label: `'${remoteRef.name}'` }
+    }
+
+    return { name: commit.shortHash || commit.hash, ref: commit.hash, label: commit.shortHash || commit.hash }
   }
 
   let checkoutInProgress = false
@@ -373,12 +384,15 @@
     closeContextMenu()
     if (!commit) return
 
-    const branchRef = getMergeableBranchRef(commit)
-    if (!branchRef) return
+    const target = getMergeTarget(commit)
+    if (!target) return
 
-    // Dispatch merge event to parent (RepositoryView will handle it)
+    // Dispatch merge event to parent (RepositoryView will handle it).
+    // `branchName` is the committish passed to `git merge` — may be a branch
+    // name, remote ref, or commit hash. `sourceLabel` is for display only.
     dispatch('merge', {
-      branchName: branchRef.name,
+      branchName: target.ref,
+      sourceLabel: target.label,
       targetBranch: $currentBranch?.name
     })
   }
@@ -574,11 +588,11 @@
       <span class="icon">🏷</span>
       New Tag...
     </button>
-    {#if getMergeableBranchRef(contextMenu.commit)}
+    {#if getMergeTarget(contextMenu.commit)}
       <div class="context-menu-divider"></div>
       <button class="context-menu-item merge-item" on:click={handleMerge}>
         <span class="icon">⎇</span>
-        Merge '{getMergeableBranchRef(contextMenu.commit).name}' into '{$currentBranch?.name}'
+        Merge {getMergeTarget(contextMenu.commit).label} into '{$currentBranch?.name}'
       </button>
     {/if}
   </div>

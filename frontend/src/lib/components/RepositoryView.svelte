@@ -119,18 +119,19 @@
 
   // Handle merge from CommitHistory context menu
   async function handleMergeFromHistory(event) {
-    const { branchName, targetBranch } = event.detail
-    await performMerge(branchName, targetBranch)
+    const { branchName, sourceLabel, targetBranch } = event.detail
+    await performMerge(branchName, targetBranch, sourceLabel)
   }
 
   // Perform merge operation
-  async function performMerge(sourceBranch, targetBranch) {
+  async function performMerge(sourceBranch, targetBranch, sourceLabel) {
+    const displayLabel = sourceLabel || `'${sourceBranch}'`
     try {
       const resultJSON = await MergeBranchWithResult(sourceBranch)
       const result = JSON.parse(resultJSON)
 
       if (result.success) {
-        alert(`'${sourceBranch}' 브랜치가 성공적으로 머지되었습니다.`)
+        alert(`${displayLabel} 머지가 완료되었습니다.`)
         await loadRepositoryData()
         await loadAheadBehind()
         commitActions.triggerRefresh()
